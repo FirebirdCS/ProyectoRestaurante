@@ -1,0 +1,62 @@
+name: PR to dev - Build & Test
+
+# Triggered whenever a pull request targeting `dev` is opened,
+# updated (new commits pushed), or reopened.
+on:
+  pull_request:
+    branches:
+      - dev
+    types: [opened, synchronize, reopened]
+
+# Cancel older runs of the same PR if a new commit arrives,
+# so you don't waste CI minutes on stale code.
+concurrency:
+  group: pr-dev-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and test (.NET 6)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 6 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.0.x'
+
+      # Cache NuGet packages between runs to speed up restore.
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore dependencies
+        run: dotnet restore RestauranteManagementSystem.sln
+
+      - name: Build solution (Release, no restore)
+        run: dotnet build RestauranteManagementSystem.sln --configuration Release --no-restore
+
+      - name: Run unit tests
+        run: >
+          dotnet test RestauranteManagementSystem.sln
+          --configuration Release
+          --no-build
+          --verbosity normal
+          --logger "trx;LogFileName=test-results.trx"
+          --collect:"XPlat Code Coverage"
+          --results-directory ./TestResults
+
+      - name: Upload test results
+        if: always()   # upload even if tests failed, so you can inspect them
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./TestResults
+          retention-days: 7
