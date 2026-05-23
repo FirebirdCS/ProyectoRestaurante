@@ -1,0 +1,56 @@
+@using Restaurant.Domain.Enums
+@model List<Restaurant.Web.Models.MesaCardVM>
+
+<div class="row g-3">
+@foreach (var c in Model)
+{
+    var (cardClass, etiqueta) = c.Mesa.Estado switch
+    {
+        EstadoMesa.Disponible => ("border-success", "Disponible"),
+        EstadoMesa.Ocupada    => ("border-warning",  "Ocupada"),
+        EstadoMesa.EnCobro    => ("border-info",     "En cobro"),
+        _                     => ("border-secondary", c.Mesa.Estado)
+    };
+    var headClass = c.Mesa.Estado switch
+    {
+        EstadoMesa.Disponible => "bg-success",
+        EstadoMesa.Ocupada    => "bg-warning text-dark",
+        EstadoMesa.EnCobro    => "bg-info text-dark",
+        _                     => "bg-secondary"
+    };
+    <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+        <div class="card h-100 @cardClass">
+            <div class="card-header text-white text-center fw-bold @headClass">
+                Mesa @c.Mesa.NumeroMesa
+            </div>
+            <div class="card-body text-center p-2">
+                <div class="fw-semibold">@etiqueta</div>
+                <small class="text-muted d-block">@c.Mesa.Capacidad pers. &middot; @c.Mesa.Ubicacion</small>
+                <div class="mt-2">
+                    @if (c.Mesa.Estado == EstadoMesa.Disponible)
+                    {
+                        if (User.IsInRole(RolNombre.Mesero) || User.IsInRole(RolNombre.Administrador))
+                        {
+                            <form asp-controller="Mesas" asp-action="Abrir" method="post">
+                                <input type="hidden" name="id" value="@c.Mesa.IdMesa" />
+                                <button type="submit" class="btn btn-sm btn-success w-100">Abrir mesa</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="text-muted small">&mdash;</span>
+                        }
+                    }
+                    else if (c.CuentaId is int cid)
+                    {
+                        <a class="btn btn-sm btn-outline-primary w-100"
+                           asp-controller="Pedidos" asp-action="Detalle" asp-route-cuentaId="@cid">
+                            Ver pedido / cuenta
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+</div>
