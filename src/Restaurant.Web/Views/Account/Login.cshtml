@@ -1,0 +1,32 @@
+@model Restaurant.Web.Models.LoginViewModel
+@{
+    ViewData["Title"] = "Iniciar sesion";
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-5 col-lg-4">
+        <div class="card shadow-sm mt-5">
+            <div class="card-body">
+                <h1 class="h4 text-center mb-4">Iniciar sesion</h1>
+
+                <form asp-controller="Account" asp-action="Login" method="post">
+                    <div asp-validation-summary="All" class="text-danger small mb-2"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Username" class="form-label"></label>
+                        <input asp-for="Username" class="form-control" autocomplete="username" autofocus />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label"></label>
+                        <input asp-for="Password" class="form-control" autocomplete="current-password" />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Entrar</button>
+                </form>
+            </div>
+        </div>
+        <p class="text-muted small text-center mt-3">
+            Sistema de gestion de restaurante &mdash; acceso solo para personal autorizado.
+        </p>
+    </div>
+</div>

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Restaurant.Application.Abstractions;
 using Restaurant.Domain.Entities;
 
 namespace Restaurant.Infrastructure.Persistence;
@@ -8,7 +9,7 @@ namespace Restaurant.Infrastructure.Persistence;
 /// Mapea el modelo relacional descrito en el diccionario de datos
 /// sobre SQL Server LocalDB.
 /// </summary>
-public class RestaurantDbContext : DbContext
+public class RestaurantDbContext : DbContext, IAppDbContext
 {
     public RestaurantDbContext(DbContextOptions<RestaurantDbContext> options) : base(options) { }
 
