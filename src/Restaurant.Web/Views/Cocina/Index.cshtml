@@ -1,0 +1,29 @@
+@model List<Restaurant.Domain.Entities.Pedido>
+@{
+    ViewData["Title"] = "Cocina";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Panel de cocina</h1>
+    <span class="text-muted small" id="ultimaAct"></span>
+</div>
+
+<div id="cola">
+    <partial name="_Cola" model="Model" />
+</div>
+
+@section Scripts {
+<script>
+    async function refrescarCola() {
+        try {
+            const r = await fetch('@Url.Action("Cola", "Cocina")', { headers: { 'X-Requested-With': 'fetch' } });
+            if (r.ok) {
+                document.getElementById('cola').innerHTML = await r.text();
+                document.getElementById('ultimaAct').textContent =
+                    'Actualizado ' + new Date().toLocaleTimeString();
+            }
+        } catch (e) { /* reintenta */ }
+    }
+    setInterval(refrescarCola, 8000);
+</script>
+}

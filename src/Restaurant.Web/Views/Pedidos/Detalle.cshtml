@@ -1,0 +1,158 @@
+@using Restaurant.Domain.Enums
+@model Restaurant.Web.Models.CuentaDetalleVM
+@{
+    ViewData["Title"] = $"Mesa {Model.Cuenta.Mesa.NumeroMesa}";
+    var cuenta = Model.Cuenta;
+    var abierta = cuenta.Estado == EstadoCuenta.Abierta;
+    var puedeEditar = (User.IsInRole(RolNombre.Mesero) || User.IsInRole(RolNombre.Administrador)) && abierta;
+    var puedeCobrar = User.IsInRole(RolNombre.Cajero) || User.IsInRole(RolNombre.Administrador);
+
+    string Badge(string estado) => estado switch
+    {
+        EstadoPedido.Pendiente => "bg-secondary",
+        EstadoPedido.EnPreparacion => "bg-info text-dark",
+        EstadoPedido.Listo => "bg-success",
+        EstadoPedido.Cancelado => "bg-danger",
+        _ => "bg-light text-dark"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Mesa @cuenta.Mesa.NumeroMesa
+        <span class="badge bg-dark">Cuenta @cuenta.Estado</span>
+    </h1>
+    <div class="d-flex gap-2">
+        @if (puedeCobrar)
+        {
+            <a class="btn btn-outline-success btn-sm"
+               asp-controller="Caja" asp-action="Cuenta" asp-route-cuentaId="@cuenta.IdCuenta">
+                Ir a caja / cobrar
+            </a>
+        }
+        <a class="btn btn-outline-secondary btn-sm" asp-controller="Mesas" asp-action="Index">&larr; Volver a mesas</a>
+    </div>
+</div>
+<p class="text-muted">Apertura: @cuenta.FechaApertura.ToString("dd/MM/yyyy HH:mm")</p>
+
+<div class="row">
+    <div class="col-lg-6">
+        <h2 class="h5">Pedidos de la cuenta</h2>
+        @if (!cuenta.Pedidos.Any())
+        {
+            <p class="text-muted">Aun no hay pedidos registrados.</p>
+        }
+        @foreach (var p in cuenta.Pedidos)
+        {
+            <div class="card mb-2">
+                <div class="card-header d-flex justify-content-between align-items-center py-2">
+                    <span>Pedido #@p.IdPedido <span class="badge @Badge(p.Estado)">@p.Estado</span></span>
+                    <small class="text-muted">@p.FechaCreacion.ToString("HH:mm")</small>
+                </div>
+                <div class="card-body py-2">
+                    <ul class="mb-2 ps-3">
+                        @foreach (var d in p.Detalles)
+                        {
+                            <li>
+                                @d.Cantidad &times; @d.Producto.Nombre
+                                <span class="text-muted">(@d.Subtotal.ToString("C"))</span>
+                                @if (!string.IsNullOrWhiteSpace(d.Observaciones))
+                                {
+                                    <em class="text-warning-emphasis d-block small">↳ @d.Observaciones</em>
+                                }
+                            </li>
+                        }
+                    </ul>
+                    @if (!string.IsNullOrWhiteSpace(p.ObservacionGeneral))
+                    {
+                        <p class="small mb-2"><strong>Obs:</strong> @p.ObservacionGeneral</p>
+                    }
+                    @if (p.FechaEnvioCocina is null && p.Estado == EstadoPedido.Pendiente)
+                    {
+                        if (puedeEditar)
+                        {
+                            <form asp-action="Enviar" method="post" class="d-inline">
+                                <input type="hidden" name="pedidoId" value="@p.IdPedido" />
+                                <input type="hidden" name="cuentaId" value="@cuenta.IdCuenta" />
+                                <button class="btn btn-sm btn-primary">Enviar a cocina</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="badge bg-light text-dark">Sin enviar</span>
+                        }
+                    }
+                    else if (p.FechaEnvioCocina is not null)
+                    {
+                        <span class="text-success small">✓ Enviado @p.FechaEnvioCocina.Value.ToString("HH:mm")</span>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-lg-6">
+        <h2 class="h5">Nuevo pedido</h2>
+        @if (!puedeEditar)
+        {
+            <p class="text-muted">
+                @(abierta ? "Su rol no permite registrar pedidos." : "La cuenta no esta abierta.")
+            </p>
+        }
+        else
+        {
+            <form asp-action="Crear" method="post">
+                <input type="hidden" name="CuentaId" value="@cuenta.IdCuenta" />
+                <div class="accordion mb-3" id="menuAcc">
+                    @{
+                        var grupos = Model.Nuevo.Lineas
+                            .Select((l, idx) => (l, idx))
+                            .GroupBy(x => x.l.Categoria).ToList();
+                        var gi = 0;
+                    }
+                    @foreach (var g in grupos)
+                    {
+                        gi++;
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button @(gi == 1 ? "" : "collapsed")" type="button"
+                                        data-bs-toggle="collapse" data-bs-target="#g@(gi)">
+                                    @g.Key
+                                </button>
+                            </h2>
+                            <div id="g@(gi)" class="accordion-collapse collapse @(gi == 1 ? "show" : "")"
+                                 data-bs-parent="#menuAcc">
+                                <div class="accordion-body p-2">
+                                    @foreach (var (l, idx) in g)
+                                    {
+                                        <div class="row g-2 align-items-center mb-2">
+                                            <input type="hidden" name="Lineas[@idx].ProductoId" value="@l.ProductoId" />
+                                            <div class="col-5">
+                                                <strong>@l.Nombre</strong><br />
+                                                <small class="text-muted">@l.Precio.ToString("C")</small>
+                                            </div>
+                                            <div class="col-3">
+                                                <input type="number" min="0" max="50" value="0"
+                                                       name="Lineas[@idx].Cantidad" class="form-control form-control-sm"
+                                                       aria-label="Cantidad @l.Nombre" />
+                                            </div>
+                                            <div class="col-4">
+                                                <input type="text" maxlength="200"
+                                                       name="Lineas[@idx].Observaciones"
+                                                       class="form-control form-control-sm" placeholder="Obs." />
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Observacion general del pedido</label>
+                    <input type="text" maxlength="200" name="ObservacionGeneral" class="form-control" />
+                </div>
+                <button type="submit" class="btn btn-success">Registrar pedido</button>
+            </form>
+        }
+    </div>
+</div>

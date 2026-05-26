@@ -1,0 +1,56 @@
+@using Restaurant.Domain.Enums
+@model List<Restaurant.Domain.Entities.Pedido>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-light border text-center">No hay pedidos en cola.</div>
+}
+<div class="row g-3">
+@foreach (var p in Model)
+{
+    var enPrep = p.Estado == EstadoPedido.EnPreparacion;
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100 @(enPrep ? "border-info" : "border-secondary")">
+            <div class="card-header d-flex justify-content-between @(enPrep ? "bg-info text-dark" : "bg-secondary text-white")">
+                <strong>Mesa @p.Cuenta.Mesa.NumeroMesa</strong>
+                <span>@(enPrep ? "En preparacion" : "Pendiente")</span>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">Pedido #@p.IdPedido &middot; recibido @p.FechaEnvioCocina!.Value.ToString("HH:mm")</small>
+                <ul class="mt-2 mb-2 ps-3">
+                    @foreach (var d in p.Detalles)
+                    {
+                        <li>
+                            <strong>@d.Cantidad &times;</strong> @d.Producto.Nombre
+                            @if (!string.IsNullOrWhiteSpace(d.Observaciones))
+                            {
+                                <span class="badge bg-warning text-dark d-inline-block mt-1">⚠ @d.Observaciones</span>
+                            }
+                        </li>
+                    }
+                </ul>
+                @if (!string.IsNullOrWhiteSpace(p.ObservacionGeneral))
+                {
+                    <p class="small"><strong>Obs. general:</strong> @p.ObservacionGeneral</p>
+                }
+            </div>
+            <div class="card-footer bg-white">
+                @if (p.Estado == EstadoPedido.Pendiente)
+                {
+                    <form asp-action="Iniciar" method="post">
+                        <input type="hidden" name="pedidoId" value="@p.IdPedido" />
+                        <button class="btn btn-info w-100">Iniciar preparacion</button>
+                    </form>
+                }
+                else
+                {
+                    <form asp-action="Listo" method="post">
+                        <input type="hidden" name="pedidoId" value="@p.IdPedido" />
+                        <button class="btn btn-success w-100">Marcar listo</button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+}
+</div>

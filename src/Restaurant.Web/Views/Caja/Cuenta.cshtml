@@ -1,0 +1,99 @@
+@using Restaurant.Domain.Enums
+@model Restaurant.Application.Services.ConsumoCuenta
+@{
+    ViewData["Title"] = $"Cobro mesa {Model.Cuenta.Mesa.NumeroMesa}";
+    var cuenta = Model.Cuenta;
+    var enCobro = cuenta.Mesa.Estado == EstadoMesa.EnCobro;
+    var cerrada = cuenta.Estado == EstadoCuenta.Cerrada;
+    var puedeGenerar = !cerrada && cuenta.Estado == EstadoCuenta.Abierta;
+    var puedeCerrar = !cerrada && Model.Subtotal > 0;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Cobro &middot; Mesa @cuenta.Mesa.NumeroMesa
+        <span class="badge bg-dark">Cuenta @cuenta.Estado</span>
+        @if (enCobro)
+        {
+            <span class="badge bg-info text-dark">En cobro</span>
+        }
+    </h1>
+    <a class="btn btn-outline-secondary btn-sm" asp-controller="Mesas" asp-action="Index">&larr; Volver a mesas</a>
+</div>
+<p class="text-muted">Apertura: @cuenta.FechaApertura.ToString("dd/MM/yyyy HH:mm")</p>
+
+<div class="row">
+    <div class="col-lg-8">
+        <h2 class="h5">Consumo acumulado</h2>
+        @if (Model.Lineas.Count == 0)
+        {
+            <p class="text-muted">La cuenta no tiene consumo registrado.</p>
+        }
+        else
+        {
+            <table class="table table-sm align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Producto</th>
+                        <th class="text-end">Cantidad</th>
+                        <th class="text-end">P. Unitario</th>
+                        <th class="text-end">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var l in Model.Lineas)
+                    {
+                        <tr>
+                            <td>@l.Producto</td>
+                            <td class="text-end">@l.Cantidad</td>
+                            <td class="text-end">@l.PrecioUnitario.ToString("C")</td>
+                            <td class="text-end">@l.Subtotal.ToString("C")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header fw-semibold">Resumen de cobro</div>
+            <div class="card-body">
+                <dl class="row mb-3">
+                    <dt class="col-6">Subtotal</dt>
+                    <dd class="col-6 text-end">@Model.Subtotal.ToString("C")</dd>
+                    <dt class="col-6">IVA (12%)</dt>
+                    <dd class="col-6 text-end">@Model.Impuesto.ToString("C")</dd>
+                    <dt class="col-6 fs-5">Total</dt>
+                    <dd class="col-6 text-end fs-5 fw-bold">@Model.Total.ToString("C")</dd>
+                </dl>
+
+                @if (cerrada)
+                {
+                    <p class="text-success mb-0">
+                        ✓ Cuenta cerrada el @cuenta.FechaCierre?.ToString("dd/MM/yyyy HH:mm")
+                    </p>
+                }
+                else
+                {
+                    <div class="d-grid gap-2">
+                        @if (puedeGenerar)
+                        {
+                            <form asp-action="Generar" method="post">
+                                <input type="hidden" name="cuentaId" value="@cuenta.IdCuenta" />
+                                <button type="submit" class="btn btn-outline-primary w-100">Generar cuenta</button>
+                            </form>
+                        }
+                        @if (puedeCerrar)
+                        {
+                            <form asp-action="Cerrar" method="post"
+                                  onsubmit="return confirm('Cerrar cuenta y liberar la mesa?');">
+                                <input type="hidden" name="cuentaId" value="@cuenta.IdCuenta" />
+                                <button type="submit" class="btn btn-success w-100">Cobrar y cerrar cuenta</button>
+                            </form>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

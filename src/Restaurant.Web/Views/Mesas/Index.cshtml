@@ -1,0 +1,30 @@
+@model List<Restaurant.Web.Models.MesaCardVM>
+@{
+    ViewData["Title"] = "Mesas";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Estado de mesas</h1>
+    <span class="text-muted small" id="ultimaAct"></span>
+</div>
+
+<div id="tablero">
+    <partial name="_Tablero" model="Model" />
+</div>
+
+@section Scripts {
+<script>
+    // HU-03: la informacion se actualiza sin recargar manualmente toda la pantalla.
+    async function refrescarTablero() {
+        try {
+            const r = await fetch('@Url.Action("Tablero", "Mesas")', { headers: { 'X-Requested-With': 'fetch' } });
+            if (r.ok) {
+                document.getElementById('tablero').innerHTML = await r.text();
+                document.getElementById('ultimaAct').textContent =
+                    'Actualizado ' + new Date().toLocaleTimeString();
+            }
+        } catch (e) { /* reintenta en el siguiente ciclo */ }
+    }
+    setInterval(refrescarTablero, 8000);
+</script>
+}
