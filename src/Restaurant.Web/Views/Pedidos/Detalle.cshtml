@@ -5,6 +5,7 @@
     var cuenta = Model.Cuenta;
     var abierta = cuenta.Estado == EstadoCuenta.Abierta;
     var puedeEditar = (User.IsInRole(RolNombre.Mesero) || User.IsInRole(RolNombre.Administrador)) && abierta;
+    var puedeCobrar = User.IsInRole(RolNombre.Cajero) || User.IsInRole(RolNombre.Administrador);
 
     string Badge(string estado) => estado switch
     {
@@ -20,7 +21,16 @@
     <h1 class="h3 mb-0">Mesa @cuenta.Mesa.NumeroMesa
         <span class="badge bg-dark">Cuenta @cuenta.Estado</span>
     </h1>
-    <a class="btn btn-outline-secondary btn-sm" asp-controller="Mesas" asp-action="Index">&larr; Volver a mesas</a>
+    <div class="d-flex gap-2">
+        @if (puedeCobrar)
+        {
+            <a class="btn btn-outline-success btn-sm"
+               asp-controller="Caja" asp-action="Cuenta" asp-route-cuentaId="@cuenta.IdCuenta">
+                Ir a caja / cobrar
+            </a>
+        }
+        <a class="btn btn-outline-secondary btn-sm" asp-controller="Mesas" asp-action="Index">&larr; Volver a mesas</a>
+    </div>
 </div>
 <p class="text-muted">Apertura: @cuenta.FechaApertura.ToString("dd/MM/yyyy HH:mm")</p>
 
