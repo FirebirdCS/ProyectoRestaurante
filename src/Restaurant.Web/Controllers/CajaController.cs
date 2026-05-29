@@ -13,7 +13,7 @@ public class CajaController : Controller
 
     public CajaController(ICuentaService cuentas) => _cuentas = cuentas;
 
-    // HU-13: visualiza el consumo acumulado de la cuenta.
+    // HU-13 / HU-14: consulta del consumo acumulado y cuenta a pagar.
     public async Task<IActionResult> Cuenta(int cuentaId)
     {
         var consumo = await _cuentas.ObtenerConsumoAsync(cuentaId);
@@ -25,7 +25,7 @@ public class CajaController : Controller
         return View(consumo);
     }
 
-    // HU-14: genera la cuenta (subtotal, IVA, total) y deja la mesa en cobro.
+    // HU-14: generacion automatica de cuenta (calcula y guarda totales).
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Generar(int cuentaId)
@@ -35,15 +35,18 @@ public class CajaController : Controller
         return RedirectToAction(nameof(Cuenta), new { cuentaId });
     }
 
-    // HU-15: cierra la cuenta, libera la mesa y conserva el historico.
+    // HU-15: cierre de cuenta y liberacion de mesa.
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cerrar(int cuentaId)
     {
         var r = await _cuentas.CerrarCuentaAsync(cuentaId, User.UserId());
-        TempData[r.Ok ? "Ok" : "Error"] = r.Mensaje;
         if (!r.Ok)
+        {
+            TempData["Error"] = r.Mensaje;
             return RedirectToAction(nameof(Cuenta), new { cuentaId });
+        }
+        TempData["Ok"] = r.Mensaje;
         return RedirectToAction("Index", "Mesas");
     }
 }

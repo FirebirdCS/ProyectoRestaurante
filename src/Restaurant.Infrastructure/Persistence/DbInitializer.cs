@@ -63,6 +63,7 @@ public static class DbInitializer
     {
         if (await db.Mesas.AnyAsync()) return;
 
+        // El restaurante cuenta con 18 mesas (descripcion del problema).
         for (var i = 1; i <= 18; i++)
         {
             db.Mesas.Add(new Mesa
